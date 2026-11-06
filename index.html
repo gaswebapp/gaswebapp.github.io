@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniShop - Katalog & Wishlist</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#3b82f6', // Blue 500
+                        secondary: '#10b981', // Emerald 500
+                        dark: '#0f172a', // Slate 900
+                        accent: '#6366f1', // Indigo 500
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(59, 130, 246, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        /* Hide scrollbar utility */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Page Transition Animation */
+        .page {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .page.hidden {
+            display: none; /* Penting untuk layout */
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+        }
+        
+        /* Fade In Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* Heart Animation */
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .animate-heartbeat {
+            animation: heartbeat 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-[#0b1120] dark:text-gray-100 transition-colors duration-300 font-sans antialiased selection:bg-blue-100 selection:text-blue-600">
+
+    <!-- NAVIGATION -->
+    <nav class="fixed w-full z-50 bg-white/80 dark:bg-[#0b1120]/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-slate-800/50 transition-colors duration-300">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- Logo -->
+            <button onclick="showPage('home')" class="text-2xl font-extrabold tracking-tight flex items-center gap-2 focus:outline-none group">
+                <div class="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-shopping-bag text-sm"></i>
+                </div>
+                <span>Mini<span class="text-primary">Shop</span></span>
+            </button>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-8 text-sm font-semibold text-gray-500 dark:text-gray-400">
+                <a href="#products" onclick="showPage('home')" class="hover:text-primary dark:hover:text-white transition-colors">Katalog</a>
+                <button onclick="showPage('wishlist')" class="hover:text-primary dark:hover:text-white transition-colors">Wishlist Saya</button>
+            </div>
+
+            <!-- Icons -->
+            <div class="flex items-center gap-3">
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition focus:outline-none">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:inline text-yellow-400"></i>
+                </button>
+
+                <!-- Wishlist Button (Ex Cart) -->
+                <button onclick="toggleWishlistDrawer()" class="relative w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-pink-50 hover:text-pink-500 dark:hover:bg-slate-800 transition focus:outline-none group">
+                    <i class="fas fa-heart group-hover:scale-110 transition-transform duration-200"></i>
+                    <span id="wishlist-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-[#0b1120] transform scale-0 transition-transform duration-200">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- =========================================
+          PAGE: HOME (HERO + KATALOG)
+    ========================================== -->
+    <div id="page-home" class="page min-h-screen">
+
+        <!-- HERO SECTION -->
+        <header class="pt-32 pb-20 px-4 text-center relative overflow-hidden">
+            <!-- Background Decoration -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl -z-10 opacity-30 dark:opacity-10 pointer-events-none">
+                <div class="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+                <div class="absolute top-20 right-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+            </div>
+
+            <div class="container mx-auto max-w-4xl relative z-10">
+                <div class="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-blue-50 border border-blue-100 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 text-xs font-bold mb-6 animate-fade-in">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    Katalog Produk Digital & Fisik Terlengkap
+                </div>
+                
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 text-gray-900 dark:text-white leading-[1.1]">
+                    Temukan Produk <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">Favoritmu Disini</span>
+                </h1>
+                
+                <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                    Koleksi lengkap mulai dari Template, E-Course, hingga Fashion. Simpan di wishlist dan checkout kapan saja.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="#products" class="px-8 py-4 bg-primary hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition transform hover:-translate-y-1 hover:shadow-xl">
+                        Lihat Katalog <i class="fas fa-arrow-down ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main id="products" class="container mx-auto px-4 py-16 border-t border-gray-200 dark:border-slate-800">
+            
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Katalog Produk</h2>
+                <p class="text-gray-500 dark:text-gray-400">Pilih kategori dan temukan yang kamu butuhkan</p>
+            </div>
+            
+            <!-- Controls: Search & Filter -->
+            <div class="bg-gray-50/90 dark:bg-[#0b1120]/90 backdrop-blur-md py-4 mb-8 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:mx-0 rounded-xl">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <!-- Categories -->
+                    <div class="flex overflow-x-auto pb-2 md:pb-0 space-x-2 no-scrollbar w-full md:w-auto" id="category-filters">
+                        <button onclick="filterCategory('all')" class="category-btn active px-5 py-2.5 rounded-full text-sm font-semibold transition bg-primary text-white shadow-lg shadow-blue-500/30 whitespace-nowrap">Semua</button>
+                        <button onclick="filterCategory('E-course')" class="category-btn px-5 py-2.5 rounded-full text-sm font-semibold bg-white border border-gray-200 text-gray-600 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition whitespace-nowrap">E-course</button>
+                        <button onclick="filterCategory('Template')" class="category-btn px-5 py-2.5 rounded-full text-sm font-semibold bg-white border border-gray-200 text-gray-600 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition whitespace-nowrap">Template</button>
+                        <button onclick="filterCategory('Fashion')" class="category-btn px-5 py-2.5 rounded-full text-sm font-semibold bg-white border border-gray-200 text-gray-600 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition whitespace-nowrap">Fashion</button>
+                    </div>
+
+                    <!-- Search (Icon Inside) -->
+                    <div class="relative w-full md:w-80 group">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 group-focus-within:text-primary transition-colors"></i>
+                        <input type="text" id="search-input" placeholder="Cari produk impianmu..." 
+                            class="w-full pl-11 pr-4 py-3 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white transition shadow-sm group-hover:shadow-md placeholder:text-gray-400">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Products injected via JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-24">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-slate-800 mb-6">
+                    <i class="fas fa-box-open text-gray-400 text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Oops, Produk tidak ditemukan</h3>
+                <p class="text-gray-500 dark:text-gray-400">Coba gunakan kata kunci lain atau ubah kategori.</p>
+            </div>
+        </main>
+
+        <!-- FAQ TOGGLE (Modified from How To Order) -->
+        <section class="bg-white dark:bg-slate-800/50 py-20 transition-colors duration-300 border-t border-gray-100 dark:border-slate-800">
+            <div class="container mx-auto px-4">
+                <div class="mt-10 max-w-3xl mx-auto">
+                    <h3 class="text-2xl font-bold mb-8 text-center dark:text-white">Pertanyaan Umum</h3>
+                    <div class="space-y-4" id="faq-list">
+                        <!-- Item 1 -->
+                        <div class="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(1)" class="w-full flex items-center justify-between px-6 py-5 text-left bg-gray-50/50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                                <span class="font-bold text-gray-800 dark:text-white">
+                                    Bagaimana cara membeli produk?
+                                </span>
+                                <i id="faq-icon-1" class="fas fa-plus text-sm text-primary transition-transform duration-300"></i>
+                            </button>
+                            <div id="faq-answer-1" class="hidden px-6 py-5 border-t border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 leading-relaxed">
+                                Klik tombol "Checkout Produk" pada detail produk. Kamu akan diarahkan ke halaman pembayaran atau marketplace terkait untuk menyelesaikan transaksi.
+                            </div>
+                        </div>
+                        <!-- Item 2 -->
+                        <div class="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(2)" class="w-full flex items-center justify-between px-6 py-5 text-left bg-gray-50/50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                                <span class="font-bold text-gray-800 dark:text-white">
+                                    Apa fungsi Wishlist?
+                                </span>
+                                <i id="faq-icon-2" class="fas fa-plus text-sm text-primary transition-transform duration-300"></i>
+                            </button>
+                            <div id="faq-answer-2" class="hidden px-6 py-5 border-t border-gray-100 dark:border-slate-700 text-gray-600 dark:text-gray-300 leading-relaxed">
+                                Wishlist berguna untuk menyimpan produk yang kamu sukai agar mudah ditemukan kembali nanti tanpa harus mencarinya dari awal.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div> <!-- /page-home -->
+
+    <!-- =========================================
+          PAGE: WISHLIST BARU (POINT 5)
+    ========================================== -->
+    <div id="page-wishlist" class="page hidden pt-32 pb-20 min-h-screen">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-pink-100 text-pink-500 mb-4">
+                    <i class="fas fa-heart text-2xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Wishlist Saya</h2>
+                <p class="text-gray-500 dark:text-gray-400">Daftar produk impian yang telah kamu simpan</p>
+            </div>
+
+            <div id="wishlist-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Wishlist items injected via JS -->
+            </div>
+
+            <!-- Empty Wishlist State -->
+            <div id="wishlist-empty-state" class="hidden text-center py-12">
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Kamu belum menambahkan produk apapun ke wishlist.</p>
+                <button onclick="showPage('home')" class="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow hover:bg-blue-600 transition">
+                    Cari Produk
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- =========================================
+          PAGE: PRODUCT DETAIL
+    ========================================== -->
+    <section id="page-product-detail" class="page hidden pt-32 pb-20 min-h-screen">
+        <div class="container mx-auto px-4 max-w-5xl">
+            <!-- Back link -->
+            <button onclick="backToHome()" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-primary mb-8 group transition">
+                <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mr-3 group-hover:bg-primary group-hover:text-white transition">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                Kembali ke Katalog
+            </button>
+
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-700 overflow-hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2">
+                    <!-- Image -->
+                    <div class="relative h-[400px] md:h-full bg-gray-100 dark:bg-slate-700 group">
+                        <img id="detail-img" src="" alt="Product" class="w-full h-full object-cover transition duration-700 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent md:hidden"></div>
+                        <span id="detail-category" class="absolute top-6 left-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur text-primary text-xs font-bold uppercase tracking-wider px-4 py-1.5 rounded-full shadow-lg">
+                            Category
+                        </span>
+                        <div id="detail-tags" class="absolute bottom-6 left-6 flex flex-wrap gap-2">
+                            <!-- badges -->
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-8 md:p-12 flex flex-col h-full relative">
+                        <div class="flex justify-between items-start">
+                            <h1 id="detail-title" class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight flex-1">
+                                Nama Produk
+                            </h1>
+                            <!-- Add to Wishlist Button in Detail -->
+                            <button id="detail-wishlist-btn" onclick="toggleWishlistFromDetail()" class="ml-4 w-12 h-12 flex-shrink-0 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-400 hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-slate-600 transition flex items-center justify-center text-xl">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-slate-700">
+                            <span id="detail-price" class="text-3xl font-bold text-primary">Rp 0</span>
+                            <span id="detail-original-price" class="text-lg text-gray-400 line-through decoration-red-500 hidden">Rp 0</span>
+                        </div>
+
+                        <div class="prose prose-sm dark:prose-invert mb-8">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Deskripsi</h3>
+                            <p id="detail-desc" class="text-gray-600 dark:text-gray-300 leading-relaxed">
+                                Deskripsi singkat produk akan tampil di sini.
+                            </p>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-6 mb-8 border border-gray-100 dark:border-slate-700">
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                <i class="fas fa-check-circle text-secondary"></i> Yang kamu dapatkan:
+                            </h3>
+                            <ul id="detail-features" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <!-- features list -->
+                            </ul>
+                        </div>
+
+                        <!-- NEW BUTTONS (Point 2) & Remove Qty (Point 3) -->
+                        <div class="mt-auto">
+                            <div class="grid grid-cols-2 gap-4">
+                                <a id="btn-salespage" href="#" target="_blank" class="py-4 px-6 bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-600 text-gray-800 dark:text-white font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 text-center">
+                                    <i class="fas fa-external-link-alt"></i> <span class="text-sm sm:text-base">Lihat Salespage</span>
+                                </a>
+                                <a id="btn-checkout" href="#" target="_blank" class="py-4 px-6 bg-primary text-white font-bold rounded-xl hover:bg-blue-600 transition flex items-center justify-center shadow-lg shadow-blue-500/25 gap-2 hover:-translate-y-1 transform text-center">
+                                    <span class="text-sm sm:text-base">Checkout Produk</span> <i class="fas fa-cart-shopping"></i>
+                                </a>
+                            </div>
+                            <p class="text-xs text-center text-gray-400 mt-4">
+                                <i class="fas fa-info-circle"></i> Transaksi akan diproses di platform partner kami.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-gray-200 dark:bg-[#0b1120] dark:border-slate-800 py-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="text-center md:text-left">
+                    <h4 class="text-xl font-extrabold tracking-tight mb-2 text-gray-900 dark:text-white">Mini<span class="text-primary">Shop</span></h4>
+                    <p class="text-sm text-gray-500 max-w-xs mx-auto md:mx-0">
+                        Platform katalog produk pilihan. Temukan, simpan di wishlist, dan beli langsung dari sumbernya.
+                    </p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:bg-pink-500 hover:text-white transition-all duration-300"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:bg-black hover:text-white transition-all duration-300"><i class="fab fa-tiktok"></i></a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:bg-green-500 hover:text-white transition-all duration-300"><i class="fab fa-whatsapp"></i></a>
+                </div>
+            </div>
+            <div class="border-t border-gray-100 dark:border-slate-800 mt-8 pt-8 text-center text-xs text-gray-400">
+                &copy; <span id="year"></span> MiniShop Official. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- WISHLIST DRAWER (Ex Cart Drawer) -->
+    <div id="wishlist-drawer" class="fixed inset-0 z-[100] hidden">
+        <!-- Backdrop -->
+        <div id="wishlist-backdrop" onclick="toggleWishlistDrawer()" class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity opacity-0 duration-300"></div>
+        
+        <!-- Panel -->
+        <div id="wishlist-panel" class="absolute top-0 right-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-heart text-pink-500 text-xl"></i>
+                    <h2 class="text-xl font-bold dark:text-white">Wishlist Kamu</h2>
+                </div>
+                <button onclick="toggleWishlistDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-500 hover:bg-red-100 hover:text-red-500 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Items -->
+            <div id="wishlist-items" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <!-- Wishlist items injected here -->
+            </div>
+
+            <!-- Footer -->
+            <div class="p-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-[#0b1120]">
+                <div class="flex justify-between items-end mb-4">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Total Produk Wishlist:</span>
+                    <span id="wishlist-total" class="text-2xl font-extrabold text-gray-900 dark:text-white">Rp 0</span>
+                </div>
+                <button onclick="goToWishlistPage()" class="w-full py-4 bg-primary hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 group">
+                    Lihat Produk Wishlist <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA PRODUK (Update Point 2 & 5) ---
+        const products = [
+            {
+                id: 1,
+                name: "Ultimate Notion Planner",
+                category: "Template",
+                price: 75000,
+                originalPrice: 150000,
+                image: "https://images.unsplash.com/photo-1662947036644-ec8de4e3f443?auto=format&fit=crop&q=80&w=600",
+                description: "Template Notion lengkap untuk mengatur produktivitas harian, keuangan, dan project management.",
+                features: ["Dashboard All-in-one", "Finance Tracker", "Lifetime Update"],
+                tags: ["Best Seller"],
+                salesPageUrl: "https://google.com", // Dummy
+                checkoutUrl: "https://google.com"   // Dummy
+            },
+            {
+                id: 2,
+                name: "Minimalist T-Shirt Black",
+                category: "Fashion",
+                price: 120000,
+                originalPrice: null,
+                image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=600",
+                description: "Kaos polos hitam dengan bahan cotton combed 30s premium. Adem dan nyaman dipakai.",
+                features: ["100% Cotton Combed", "Unisex", "Anti-shrink"],
+                tags: ["Baru"],
+                salesPageUrl: "https://google.com",
+                checkoutUrl: "https://google.com"
+            },
+            {
+                id: 3,
+                name: "JavaScript Mastery Course",
+                category: "E-course",
+                price: 299000,
+                originalPrice: 500000,
+                image: "https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?auto=format&fit=crop&q=80&w=600",
+                description: "Belajar JavaScript dari dasar hingga mahir. Termasuk 10 project real-world.",
+                features: ["40+ Jam Video", "Akses Seumur Hidup", "Sertifikat"],
+                tags: ["Popular"],
+                salesPageUrl: "https://google.com",
+                checkoutUrl: "https://google.com"
+            },
+            {
+                id: 4,
+                name: "Social Media Kit 2024",
+                category: "Template",
+                price: 99000,
+                originalPrice: null,
+                image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=600",
+                description: "100+ Template Canva untuk Instagram Feed & Story. Tinggal edit warna.",
+                features: ["Editable Canva Link", "Free Font", "Guide PDF"],
+                tags: [],
+                salesPageUrl: "https://google.com",
+                checkoutUrl: "https://google.com"
+            },
+            {
+                id: 5,
+                name: "Leather Wallet Brown",
+                category: "Fashion",
+                price: 250000,
+                originalPrice: 350000,
+                image: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=600",
+                description: "Dompet kulit asli buatan tangan pengrajin lokal. Tahan lama dan semakin bagus seiring waktu.",
+                features: ["Genuine Leather", "8 Card Slots", "Box Eksklusif"],
+                tags: ["Premium"],
+                salesPageUrl: "https://google.com",
+                checkoutUrl: "https://google.com"
+            },
+            {
+                id: 6,
+                name: "UI/UX Design E-Book",
+                category: "E-course",
+                price: 49000,
+                originalPrice: null,
+                image: "https://images.unsplash.com/photo-1586717791821-3f44a5638d48?auto=format&fit=crop&q=80&w=600",
+                description: "Panduan praktis desain antarmuka aplikasi mobile. Cocok untuk pemula.",
+                features: ["PDF Format", "Case Studies", "Design System"],
+                tags: [],
+                salesPageUrl: "https://google.com",
+                checkoutUrl: "https://google.com"
+            }
+        ];
+
+        // --- STATE ---
+        let wishlist = []; // Ganti Cart jadi Wishlist
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let selectedProduct = null;
+
+        // --- DOM ELEMENTS ---
+        const productGrid    = document.getElementById('product-grid');
+        const wishlistCount  = document.getElementById('wishlist-count'); // Ex cart-count
+        const wishlistDrawer = document.getElementById('wishlist-drawer');
+        const wishlistBackdrop = document.getElementById('wishlist-backdrop');
+        const wishlistPanel  = document.getElementById('wishlist-panel');
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts();
+            initTheme();
+            document.getElementById('year').textContent = new Date().getFullYear();
+            
+            // Search Listener
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                renderProducts();
+            });
+
+            showPage('home');
+        });
+
+        // --- FAQ TOGGLE ---
+        function toggleFaq(id) {
+            const answer = document.getElementById(`faq-answer-${id}`);
+            const icon = document.getElementById(`faq-icon-${id}`);
+            if (!answer) return;
+            const isHidden = answer.classList.contains('hidden');
+            answer.classList.toggle('hidden');
+            if (icon) {
+                if (isHidden) {
+                    icon.classList.remove('fa-plus');
+                    icon.classList.add('fa-minus');
+                    icon.classList.add('rotate-180');
+                } else {
+                    icon.classList.add('fa-plus');
+                    icon.classList.remove('fa-minus');
+                    icon.classList.remove('rotate-180');
+                }
+            }
+        }
+
+        // --- PAGE SWITCHING ---
+        function showPage(page) {
+            const home     = document.getElementById('page-home');
+            const detail   = document.getElementById('page-product-detail');
+            const wishlistPage = document.getElementById('page-wishlist');
+
+            [home, detail, wishlistPage].forEach(p => {
+                if (!p) return;
+                p.classList.add('hidden');
+                p.classList.remove('animate-fade-in'); 
+            });
+            
+            let target;
+            if (page === 'home') target = home;
+            if (page === 'detail') target = detail;
+            if (page === 'wishlist') {
+                target = wishlistPage;
+                renderWishlistPage(); // Render content saat halaman dibuka
+            }
+
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.add('animate-fade-in');
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Tutup drawer jika pindah halaman
+            if (!wishlistDrawer.classList.contains('hidden')) {
+                toggleWishlistDrawer();
+            }
+        }
+
+        function backToHome() {
+            showPage('home');
+        }
+
+        // --- RENDER PRODUCTS ---
+        function renderProducts() {
+            productGrid.innerHTML = '';
+            
+            const filtered = products.filter(p => {
+                const matchCat = currentFilter === 'all' || p.category === currentFilter;
+                const matchSearch = p.name.toLowerCase().includes(searchQuery);
+                return matchCat && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+            } else {
+                document.getElementById('empty-state').classList.add('hidden');
+                
+                filtered.forEach((p) => {
+                    const hasDiscount = p.originalPrice !== null;
+                    const discountPercent = hasDiscount ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+                    const isLiked = wishlist.some(item => item.id === p.id);
+                    
+                    const card = document.createElement('div');
+                    card.className = "bg-white dark:bg-slate-800 rounded-2xl shadow-soft hover:shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden transition-all duration-300 group hover:-translate-y-1";
+                    card.innerHTML = `
+                        <div class="relative h-64 overflow-hidden bg-gray-100 dark:bg-slate-700">
+                            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover transform group-hover:scale-110 transition duration-700">
+                            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition"></div>
+                            
+                            ${hasDiscount ? `<span class="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">-${discountPercent}%</span>` : ''}
+                            
+                            <div class="absolute top-4 left-4 flex gap-1">
+                                <span class="bg-white/90 dark:bg-slate-900/90 backdrop-blur text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">${p.category}</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 leading-snug group-hover:text-primary transition-colors">${p.name}</h3>
+                            <div class="flex items-baseline gap-2 mb-4">
+                                ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">${formatRupiah(p.originalPrice)}</span>` : ''}
+                                <span class="text-xl font-extrabold text-gray-900 dark:text-white">${formatRupiah(p.price)}</span>
+                            </div>
+                            <div class="flex gap-2 pt-2 border-t border-gray-50 dark:border-slate-700/50">
+                                <button onclick="openDetail(${p.id})" class="flex-1 py-2.5 px-3 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-blue-600 transition shadow-lg shadow-blue-500/20 active:scale-95">
+                                    Detail Produk
+                                </button>
+                                <!-- Tombol Wishlist -->
+                                <button onclick="toggleWishlist(${p.id})" class="w-12 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 dark:border-slate-600 hover:bg-pink-50 dark:hover:bg-slate-700 transition flex items-center justify-center group/love ${isLiked ? 'text-pink-500 border-pink-200 bg-pink-50' : 'text-gray-400 dark:text-gray-400'}">
+                                    <i class="fas fa-heart ${isLiked ? '' : 'group-hover/love:text-pink-500'} transition-colors"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    productGrid.appendChild(card);
+                });
+            }
+        }
+
+        function filterCategory(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                const label = btn.innerText.trim();
+                const isActive = (cat === 'all' && label === 'Semua') || label === cat;
+                if (isActive) {
+                    btn.classList.add('bg-primary', 'text-white', 'active', 'shadow-lg');
+                    btn.classList.remove('bg-white', 'text-gray-600', 'dark:bg-slate-800', 'dark:text-gray-300');
+                } else {
+                    btn.classList.remove('bg-primary', 'text-white', 'active', 'shadow-lg');
+                    btn.classList.add('bg-white', 'text-gray-600', 'dark:bg-slate-800', 'dark:text-gray-300');
+                }
+            });
+            renderProducts();
+        }
+
+        // --- PRODUCT DETAIL PAGE LOGIC ---
+        function openDetail(id) {
+            const prod = products.find(p => p.id === id);
+            if (!prod) return;
+            selectedProduct = prod;
+
+            document.getElementById('detail-img').src = prod.image;
+            document.getElementById('detail-category').innerText = prod.category;
+            document.getElementById('detail-title').innerText = prod.name;
+
+            const orig = document.getElementById('detail-original-price');
+            if (prod.originalPrice) {
+                orig.classList.remove('hidden');
+                orig.innerText = formatRupiah(prod.originalPrice);
+            } else {
+                orig.classList.add('hidden');
+            }
+            document.getElementById('detail-price').innerText = formatRupiah(prod.price);
+            document.getElementById('detail-desc').innerText = prod.description;
+            document.getElementById('detail-features').innerHTML = prod.features.map(f => `<li class="flex items-start gap-2"><span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span>${f}</li>`).join('');
+
+            // Tags
+            const tagsWrap = document.getElementById('detail-tags');
+            tagsWrap.innerHTML = '';
+            if (prod.tags && prod.tags.length > 0) {
+                prod.tags.forEach(t => {
+                    const span = document.createElement('span');
+                    span.className = "bg-black/50 backdrop-blur text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/20";
+                    span.textContent = t;
+                    tagsWrap.appendChild(span);
+                });
+            }
+
+            // Update URL Buttons
+            document.getElementById('btn-salespage').href = prod.salesPageUrl;
+            document.getElementById('btn-checkout').href = prod.checkoutUrl;
+
+            // Update Wishlist Button State in Detail
+            updateDetailWishlistBtn(prod.id);
+
+            showPage('detail');
+        }
+
+        function updateDetailWishlistBtn(id) {
+            const btn = document.getElementById('detail-wishlist-btn');
+            const isLiked = wishlist.some(item => item.id === id);
+            if(isLiked) {
+                btn.classList.add('text-pink-500', 'bg-pink-50');
+                btn.classList.remove('text-gray-400', 'bg-gray-100', 'dark:bg-slate-700');
+            } else {
+                btn.classList.remove('text-pink-500', 'bg-pink-50');
+                btn.classList.add('text-gray-400', 'bg-gray-100', 'dark:bg-slate-700');
+            }
+        }
+
+        function toggleWishlistFromDetail() {
+            if(!selectedProduct) return;
+            toggleWishlist(selectedProduct.id);
+            updateDetailWishlistBtn(selectedProduct.id);
+        }
+
+        // --- WISHLIST LOGIC (Replaces Cart) ---
+        function toggleWishlistDrawer() {
+            const isHidden = wishlistDrawer.classList.contains('hidden');
+            if (isHidden) {
+                wishlistDrawer.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                // Animations
+                setTimeout(() => {
+                    wishlistBackdrop.classList.remove('opacity-0');
+                    wishlistPanel.classList.remove('translate-x-full');
+                }, 10);
+            } else {
+                wishlistBackdrop.classList.add('opacity-0');
+                wishlistPanel.classList.add('translate-x-full');
+                setTimeout(() => {
+                    wishlistDrawer.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }, 300);
+            }
+        }
+
+        function toggleWishlist(id) {
+            const prod = products.find(p => p.id === id);
+            if (!prod) return;
+
+            const index = wishlist.findIndex(item => item.id === id);
+
+            if (index === -1) {
+                // Add to Wishlist
+                wishlist.push(prod);
+            } else {
+                // Remove from Wishlist
+                wishlist.splice(index, 1);
+            }
+
+            updateWishlistUI();
+            
+            // Re-render grids if they are visible to update heart icons
+            if(!document.getElementById('page-home').classList.contains('hidden')) {
+                renderProducts();
+            }
+            if(!document.getElementById('page-wishlist').classList.contains('hidden')) {
+                renderWishlistPage();
+            }
+            
+            // Animation Badge
+            wishlistCount.classList.remove('scale-0');
+            wishlistCount.classList.add('scale-125');
+            setTimeout(() => wishlistCount.classList.remove('scale-125'), 200);
+        }
+
+        function removeFromWishlist(id) {
+            toggleWishlist(id); // Logic same as toggle
+        }
+
+        function updateWishlistUI() {
+            const wishlistItemsContainer = document.getElementById('wishlist-items');
+            wishlistItemsContainer.innerHTML = '';
+
+            let total = 0;
+            let count = wishlist.length;
+
+            wishlist.forEach(item => {
+                total += item.price; // Sum of price
+
+                const itemEl = document.createElement('div');
+                itemEl.className = "flex gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-pink-200 transition-colors";
+                itemEl.innerHTML = `
+                    <img src="${item.image}" class="w-16 h-16 object-cover rounded-xl shadow-sm">
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 mb-1">${item.name}</h4>
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs text-primary font-bold">${formatRupiah(item.price)}</p>
+                            <button onclick="removeFromWishlist(${item.id})" class="w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white text-xs transition">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                wishlistItemsContainer.appendChild(itemEl);
+            });
+
+            // Update Badge
+            wishlistCount.innerText = count;
+            if (count === 0) {
+                wishlistCount.classList.add('scale-0');
+                wishlistItemsContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-400 py-10">
+                        <div class="w-20 h-20 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-heart-broken text-3xl opacity-50"></i>
+                        </div>
+                        <p class="font-medium">Wishlist Kosong</p>
+                        <button onclick="toggleWishlistDrawer()" class="mt-4 text-primary text-sm font-bold hover:underline">Mulai Eksplorasi</button>
+                    </div>`;
+            } else {
+                wishlistCount.classList.remove('scale-0');
+            }
+
+            document.getElementById('wishlist-total').innerText = formatRupiah(total);
+        }
+
+        // --- NEW PAGE: WISHLIST PAGE RENDERER ---
+        function goToWishlistPage() {
+            showPage('wishlist');
+        }
+
+        function renderWishlistPage() {
+            const grid = document.getElementById('wishlist-grid');
+            const emptyState = document.getElementById('wishlist-empty-state');
+            grid.innerHTML = '';
+
+            if (wishlist.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            wishlist.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-gray-100 dark:border-slate-700 overflow-hidden group";
+                card.innerHTML = `
+                    <div class="relative h-48 overflow-hidden bg-gray-100 dark:bg-slate-700">
+                        <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <button onclick="removeFromWishlist(${p.id})" class="absolute top-3 right-3 bg-red-500 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow hover:bg-red-600 transition">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">${p.name}</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-lg font-bold text-primary">${formatRupiah(p.price)}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <a href="${p.salesPageUrl}" target="_blank" class="py-2 px-3 border border-gray-200 dark:border-slate-600 rounded-lg text-xs font-bold text-center hover:bg-gray-50 dark:hover:bg-slate-700 transition dark:text-white">
+                                Salespage
+                            </a>
+                            <a href="${p.checkoutUrl}" target="_blank" class="py-2 px-3 bg-primary text-white rounded-lg text-xs font-bold text-center hover:bg-blue-600 transition shadow-md">
+                                Checkout
+                            </a>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- THEME LOGIC ---
+        function initTheme() {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            themeToggle.addEventListener('click', function() {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            });
+        }
+
+        // --- UTILS ---
+        const formatRupiah = (num) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+        };
+    </script>
+</body>
+</html>
